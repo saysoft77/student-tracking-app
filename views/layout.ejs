@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <%- style %>
+</head>
+<body>
+    <header class="header">
+        <div class="hamburger" onclick="toggleNav()">☰</div>
+        <h1>Student Tracking System</h1>
+    </header>
+
+    <nav class="nav" id="nav">
+        <a href="/">Home</a>
+        <a href="/students">Students</a>
+        <a href="/standards">Standards</a>
+        <a href="/classes">Classes</a>
+    </nav>
+    <div class="content">
+        <%- body %>
+    </div>
+
+    <script>
+        function toggleNav() {
+            var nav = document.getElementById("nav");
+            nav.style.display = nav.style.display === "block" ? "none" : "block";
+        }
+    </script>
+    <%- script %>
+</body>
+</html>
+

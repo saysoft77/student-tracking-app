@@ -1,0 +1,45 @@
+<style>
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.import-btn {
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.import-btn:hover {
+    background-color: #007B9A;
+}
+</style>
+
+<div class="header-container">
+    <h2>Manage Students</h2>
+    <form id="importForm" action="/students/import" method="post" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" accept=".csv, .txt" required style="display: none;">
+        <label for="fileInput" class="import-btn">Import Students</label>
+    </form>
+</div>
+
+<!-- Add your management interface here -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('fileInput');
+    const importForm = document.getElementById('importForm');
+
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            importForm.submit();
+        }
+    });
+});
+</script>

@@ -1,0 +1,53 @@
+<style>
+    .card-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        margin-top: 20px;
+    }
+
+    .card {
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        margin: 10px;
+        padding: 20px;
+        width: 200px;
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: #333;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+    .card h2 {
+        margin-bottom: 10px;
+    }
+
+    .card p {
+        font-size: 14px;
+    }
+</style>
+
+<h1>Welcome to Student Tracking App</h1>
+<p>Use this application to manage student information, standards, and classes.</p>
+
+<div class="card-container">
+    <a href="/students" class="card">
+        <h2>Students</h2>
+        <p>View and manage student information</p>
+    </a>
+    <a href="/standards" class="card">
+        <h2>Standards</h2>
+        <p>Manage educational standards</p>
+    </a>
+    <a href="/classes" class="card">
+        <h2>Classes</h2>
+        <p>View and manage class information</p>
+    </a>
+</div>
