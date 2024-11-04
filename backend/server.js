@@ -4,10 +4,12 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 const db = require('../models/database');
 
 const app = express();
 const upload = multer({ dest: 'uploads/' });
+
 app.use(cors());
 app.use(express.json());
 
@@ -21,48 +23,39 @@ app.get('/api/students', (req, res) => {
   });
 });
 
-app.post('/api/students/import', upload.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No file uploaded' });
-  }
+app.post('/api/import-students', (req, res) => {
+  const sourceDbPath = path.resolve(__dirname, '../data/students.db');
+  const tempDb = new sqlite3.Database(sourceDbPath, sqlite3.OPEN_READONLY, (err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error opening source database' });
+    }
 
-  const results = [];
-  fs.createReadStream(req.file.path)
-    .pipe(csv())
-    .on('data', (data) => results.push(data))
-    .on('end', async () => {
-      try {
-        // Validate CSV structure
-        if (!validateCsvStructure(results[0])) {
-          return res.status(400).json({ message: 'Invalid CSV structure' });
-        }
-
-        // Start a transaction
-        await db.run('BEGIN TRANSACTION');
-
-        // Clear existing data
-        await db.run('DELETE FROM students');
-
-        // Insert new data
-        for (const row of results) {
-          await db.run(
-            'INSERT INTO students (FirstName, LastName, Grade, Class) VALUES (?, ?, ?, ?)',
-            [row.FirstName, row.LastName, row.Grade, row.Class]
-          );
-        }
-
-        // Commit the transaction
-        await db.run('COMMIT');
-
-        res.json({ message: 'Students imported successfully' });
-      } catch (error) {
-        await db.run('ROLLBACK');
-        res.status(500).json({ message: error.message });
-      } finally {
-        // Delete the uploaded file
-        fs.unlinkSync(req.file.path);
+    tempDb.all('SELECT * FROM students', [], (err, rows) => {
+      if (err) {
+        tempDb.close();
+        return res.status(500).json({ error: 'Error reading from source database' });
       }
+
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        const stmt = db.prepare('INSERT OR REPLACE INTO students (StudentID, FirstName, LastName, Grade, Class) VALUES (?, ?, ?, ?, ?)');
+        rows.forEach((row) => {
+          stmt.run(row.StudentID, row.FirstName, row.LastName, row.Grade, row.Class);
+        });
+        stmt.finalize();
+
+        db.run('COMMIT', (err) => {
+          if (err) {
+            return res.status(500).json({ error: 'Error committing transaction' });
+          }
+          res.json({ message: 'Students imported successfully', count: rows.length });
+        });
+      });
+
+      tempDb.close();
     });
+  });
 });
 
 function validateCsvStructure(firstRow) {
@@ -75,3 +68,4 @@ const port = process.env.PORT || 3001;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+

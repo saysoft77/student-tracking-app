@@ -1,24 +1,40 @@
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchStudents = async () => {
       try {
         const response = await axios.get('http://localhost:3001/api/students');
-        setStudents(response.data.students);
+        if (response.data.students.length === 0) {
+          await importStudents();
+        } else {
+          setStudents(response.data.students);
+        }
       } catch (error) {
         console.error('Error fetching students:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchStudents();
   }, []);
 
+  const importStudents = async () => {
+    try {
+      const response = await axios.post('http://localhost:3001/api/import-students');
+      console.log(response.data.message);
+      const updatedStudents = await axios.get('http://localhost:3001/api/students');
+      setStudents(updatedStudents.data.students);
+    } catch (error) {
+      console.error('Error importing students:', error);
+    }
+  };
   const handleManageStudents = () => {
     setShowDialog(true);
   };
@@ -27,6 +43,9 @@ const Students = () => {
     setShowDialog(false);
   };
 
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
   return (
     <div className="students-container">
       <div className="header-container">
