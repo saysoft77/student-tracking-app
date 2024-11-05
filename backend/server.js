@@ -6,9 +6,34 @@ const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const db = require('../models/database');
+// Add this near the top of your file, after initializing the database
+db.get("SELECT COUNT(*) as count FROM students", (err, row) => {
+  if (err) {
+    console.error('Error checking students table:', err);
+    return;
+  }
+
+  if (row.count === 0) {
+    const sampleStudents = [
+      { StudentID: 1, FirstName: 'John', LastName: 'Doe', Grade: 10, Class: 'A' },
+      { StudentID: 2, FirstName: 'Jane', LastName: 'Smith', Grade: 11, Class: 'B' },
+      { StudentID: 3, FirstName: 'Bob', LastName: 'Johnson', Grade: 9, Class: 'C' },
+    ];
+
+    const insertStudent = db.prepare("INSERT INTO students (StudentID, FirstName, LastName, Grade, Class) VALUES (?, ?, ?, ?, ?)");
+
+    sampleStudents.forEach(student => {
+      insertStudent.run(student.StudentID, student.FirstName, student.LastName, student.Grade, student.Class);
+    });
+
+    insertStudent.finalize();
+
+    console.log('Sample students added to the database');
+  }
+});
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: 'backend/uploads/' });
 
 app.use(cors());
 app.use(express.json());
@@ -22,44 +47,63 @@ app.get('/api/students', (req, res) => {
     res.json({ students: rows });
   });
 });
+ app.post('/api/students/import', upload.single('file'), async (req, res) => {
+   if (!req.file) {
+     return res.status(400).json({ message: 'No file uploaded' });
+   }
 
-app.post('/api/import-students', (req, res) => {
-  const sourceDbPath = path.resolve(__dirname, '../data/students.db');
-  const tempDb = new sqlite3.Database(sourceDbPath, sqlite3.OPEN_READONLY, (err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Error opening source database' });
-    }
+   const results = [];
+   fs.createReadStream(req.file.path)
+     .pipe(csv())
+     .on('data', (data) => results.push(data))
+     .on('end', async () => {
+       try {
+         console.log(`CSV parsing complete. ${results.length} rows found.`);
 
-    tempDb.all('SELECT * FROM students', [], (err, rows) => {
-      if (err) {
-        tempDb.close();
-        return res.status(500).json({ error: 'Error reading from source database' });
-      }
+         // Validate CSV structure
+         if (!validateCsvStructure(results[0])) {
+           return res.status(400).json({ message: 'Invalid CSV structure' });
+         }
 
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
+         // Start a transaction
+         await db.run('BEGIN TRANSACTION');
 
-        const stmt = db.prepare('INSERT OR REPLACE INTO students (StudentID, FirstName, LastName, Grade, Class) VALUES (?, ?, ?, ?, ?)');
-        rows.forEach((row) => {
-          stmt.run(row.StudentID, row.FirstName, row.LastName, row.Grade, row.Class);
-        });
-        stmt.finalize();
+         // Clear existing data
+         await db.run('DELETE FROM students');
 
-        db.run('COMMIT', (err) => {
-          if (err) {
-            return res.status(500).json({ error: 'Error committing transaction' });
-          }
-          res.json({ message: 'Students imported successfully', count: rows.length });
-        });
-      });
+         // Insert new data
+         let insertedCount = 0;
+         for (const row of results) {
+           try {
+             await db.run(
+               'INSERT INTO students (StudentID, FirstName, LastName, Grade, Class) VALUES (?, ?, ?, ?, ?)',
+               [row.StudentID, row.FirstName, row.LastName, row.Grade, row.Class]
+             );
+             insertedCount++;
+           } catch (insertError) {
+             console.error('Error inserting row:', row, insertError);
+           }
+         }
 
-      tempDb.close();
-    });
-  });
-});
+         // Commit the transaction
+         await db.run('COMMIT');
+
+         console.log(`Inserted ${insertedCount} rows out of ${results.length}.`);
+         res.json({ message: `Students imported successfully. ${insertedCount} rows inserted.` });
+       } catch (error) {
+         await db.run('ROLLBACK');
+         console.error('Error during import:', error);
+         res.status(500).json({ message: error.message });
+       } finally {
+         // Delete the uploaded file
+         fs.unlinkSync(req.file.path);
+       }
+     });
+ });
+
 
 function validateCsvStructure(firstRow) {
-  const requiredColumns = ['FirstName', 'LastName', 'Grade', 'Class'];
+  const requiredColumns = ['StudentID','FirstName', 'LastName', 'Grade', 'Class'];
   return requiredColumns.every(column => column in firstRow);
 }
 
