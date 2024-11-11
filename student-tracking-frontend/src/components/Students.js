@@ -1,6 +1,5 @@
-import axios from 'axios';
 import React, { useState, useEffect, useRef } from 'react';
-import './styles.css';
+import axios from 'axios';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -20,6 +19,8 @@ const Students = () => {
       console.error('Error fetching students:', error);
     }
   };
+
+  // Add the missing handleManageStudents function
   const handleManageStudents = () => {
     setShowDialog(true);
   };

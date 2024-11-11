@@ -15,5 +15,5 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*# Add this line
-backend/students.db
+backend/tracking.db
 student-tracking-app.code-workspace

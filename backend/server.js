@@ -1,115 +1,119 @@
 const express = require('express');
-const multer = require('multer');
-const csv = require('csv-parser');
-const fs = require('fs');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
+const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const csv = require('csv-parser');
 const db = require('../models/database');
-// Add this near the top of your file, after initializing the database
-db.get("SELECT COUNT(*) as count FROM students", (err, row) => {
-  if (err) {
-    console.error('Error checking students table:', err);
-    return;
-  }
-
-  if (row.count === 0) {
-    const sampleStudents = [
-      { StudentID: 1, FirstName: 'John', LastName: 'Doe', Grade: 10, Class: 'A' },
-      { StudentID: 2, FirstName: 'Jane', LastName: 'Smith', Grade: 11, Class: 'B' },
-      { StudentID: 3, FirstName: 'Bob', LastName: 'Johnson', Grade: 9, Class: 'C' },
-    ];
-
-    const insertStudent = db.prepare("INSERT INTO students (StudentID, FirstName, LastName, Grade, Class) VALUES (?, ?, ?, ?, ?)");
-
-    sampleStudents.forEach(student => {
-      insertStudent.run(student.StudentID, student.FirstName, student.LastName, student.Grade, student.Class);
-    });
-
-    insertStudent.finalize();
-
-    console.log('Sample students added to the database');
-  }
-});
 
 const app = express();
-const upload = multer({ dest: 'backend/uploads/' });
+const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, 'uploads');
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Create students table if it doesn't exist
+db.run(`CREATE TABLE IF NOT EXISTS students (
+  StudentID INTEGER PRIMARY KEY,
+  FirstName TEXT,
+  LastName TEXT,
+  Grade INTEGER,
+  Class TEXT
+)`, (err) => {
+  if (err) {
+    console.error('Error creating students table:', err.message);
+  } else {
+    console.log('Students table created or already exists');
+
+    // Check if the students table exists and log the row count
+    db.get('SELECT COUNT(*) as count FROM students', (err, row) => {
+      if (err) {
+        console.error('Error checking students table:', err.message);
+      } else {
+        console.log('Students table exists with', row.count, 'rows');
+      }
+    });
+  }
+});
+
+// Add a GET route for fetching students
 app.get('/api/students', (req, res) => {
-  db.all('SELECT * FROM students', [], (err, rows) => {
+  db.all('SELECT * FROM students', (err, rows) => {
     if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+      console.error('Error fetching students:', err.message);
+      res.status(500).json({ error: 'Error fetching students' });
+    } else {
+      console.log('Sending students data:', rows);
+      res.json({ students: rows });
     }
-    res.json({ students: rows });
   });
 });
- app.post('/api/students/import', upload.single('file'), async (req, res) => {
-   if (!req.file) {
-     return res.status(400).json({ message: 'No file uploaded' });
-   }
-
-   const results = [];
-   fs.createReadStream(req.file.path)
-     .pipe(csv())
-     .on('data', (data) => results.push(data))
-     .on('end', async () => {
-       try {
-         console.log(`CSV parsing complete. ${results.length} rows found.`);
-
-         // Validate CSV structure
-         if (!validateCsvStructure(results[0])) {
-           return res.status(400).json({ message: 'Invalid CSV structure' });
-         }
-
-         // Start a transaction
-         await db.run('BEGIN TRANSACTION');
-
-         // Clear existing data
-         await db.run('DELETE FROM students');
-
-         // Insert new data
-         let insertedCount = 0;
-         for (const row of results) {
-           try {
-             await db.run(
-               'INSERT INTO students (StudentID, FirstName, LastName, Grade, Class) VALUES (?, ?, ?, ?, ?)',
-               [row.StudentID, row.FirstName, row.LastName, row.Grade, row.Class]
-             );
-             insertedCount++;
-           } catch (insertError) {
-             console.error('Error inserting row:', row, insertError);
-           }
-         }
-
-         // Commit the transaction
-         await db.run('COMMIT');
-
-         console.log(`Inserted ${insertedCount} rows out of ${results.length}.`);
-         res.json({ message: `Students imported successfully. ${insertedCount} rows inserted.` });
-       } catch (error) {
-         await db.run('ROLLBACK');
-         console.error('Error during import:', error);
-         res.status(500).json({ message: error.message });
-       } finally {
-         // Delete the uploaded file
-         fs.unlinkSync(req.file.path);
-       }
-     });
- });
 
 
-function validateCsvStructure(firstRow) {
-  const requiredColumns = ['StudentID','FirstName', 'LastName', 'Grade', 'Class'];
-  return requiredColumns.every(column => column in firstRow);
-}
+app.post('/api/students/import', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const results = [];
+
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (data) => results.push(data))
+    .on('end', () => {
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        const stmt = db.prepare('INSERT INTO students (StudentID, FirstName, LastName, Grade, Class) VALUES (?, ?, ?, ?, ?)');
+
+        results.forEach((row) => {
+          stmt.run(
+            row.StudentID,
+            row.FirstName,
+            row.LastName,
+            row.Grade,
+            row.Class,
+            (err) => {
+              if (err) {
+                console.error('Error inserting student:', err);
+              }
+            }
+          );
+        });
+
+        stmt.finalize();
+
+        db.run('COMMIT', (err) => {
+          if (err) {
+            console.error('Error committing transaction:', err);
+            res.status(500).json({ error: 'Error importing students' });
+          } else {
+            res.json({ message: 'Students imported successfully' });
+          }
+
+          // After processing, delete the uploaded file
+          fs.unlinkSync(req.file.path);
+        });
+      });
+    });
+});
+
 
 // Start the server
-const port = process.env.PORT || 3001;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
-
