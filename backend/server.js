@@ -62,6 +62,32 @@ app.get('/api/students', (req, res) => {
     }
   });
 });
+// Get all standards
+app.get('/api/standards', (req, res) => {
+  db.all('SELECT * FROM Standard', (err, rows) => {
+    if (err) {
+      console.error('Error fetching standards:', err.message);
+      res.status(500).json({ error: 'Error fetching standards' });
+    } else {
+      res.json(rows);
+    }
+  });
+});
+
+// Get standards by grade band
+app.get('/api/standards/grade/:gradeBand', (req, res) => {
+  const gradeBand = req.params.gradeBand;
+  db.all('SELECT * FROM Standard WHERE category = ?', [gradeBand], (err, rows) => {
+    if (err) {
+      console.error('Error fetching standards by grade band:', err.message);
+      res.status(500).json({ error: 'Error fetching standards by grade band' });
+    } else {
+      res.json(rows);
+    }
+  });
+});
+
+
 
 
 app.post('/api/students/import', upload.single('file'), (req, res) => {
