@@ -1,9 +1,9 @@
 # Dependencies
 /node_modules
-/student-tracking-frontend/node_modules
+/frontend/node_modules
 
 # Production build
-/student-tracking-frontend/build
+/frontend/build
 
 # Misc
 .DS_Store
