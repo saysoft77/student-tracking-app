@@ -4,10 +4,10 @@
   "description": "Student Tracking Application",
   "main": "index.js",
   "scripts": {
-    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
-    "start:backend": "cd backend && npm start",
+    "start": "npm-run-all --parallel start:*",
+    "start:backend": "cd backend && node server.js",
     "start:frontend": "cd frontend && npm start",
-    "install": "npm run install:backend && npm run install:frontend",
+    "install": "npm-run-all --parallel install:*",
     "install:backend": "cd backend && npm install",
     "install:frontend": "cd frontend && npm install"
   },
@@ -15,7 +15,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "concurrently": "^6.5.1"
+    "npm-run-all": "^4.1.5"
   },
   "dependencies": {
     "csv-parser": "^3.0.0",
