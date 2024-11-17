@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const csv = require('csv-parser');
-const db = require('../models/database');
+const db = require('./models/database');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -62,33 +62,6 @@ app.get('/api/students', (req, res) => {
     }
   });
 });
-// Get all standards
-app.get('/api/standards', (req, res) => {
-  db.all('SELECT * FROM Standard', (err, rows) => {
-    if (err) {
-      console.error('Error fetching standards:', err.message);
-      res.status(500).json({ error: 'Error fetching standards' });
-    } else {
-      res.json(rows);
-    }
-  });
-});
-
-// Get standards by grade band
-app.get('/api/standards/grade/:gradeBand', (req, res) => {
-  const gradeBand = req.params.gradeBand;
-  db.all('SELECT * FROM Standard WHERE category = ?', [gradeBand], (err, rows) => {
-    if (err) {
-      console.error('Error fetching standards by grade band:', err.message);
-      res.status(500).json({ error: 'Error fetching standards by grade band' });
-    } else {
-      res.json(rows);
-    }
-  });
-});
-
-
-
 
 app.post('/api/students/import', upload.single('file'), (req, res) => {
   if (!req.file) {
@@ -142,4 +115,17 @@ app.post('/api/students/import', upload.single('file'), (req, res) => {
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+});app.get('/api/standards', (req, res) => {
+  db.all('SELECT * FROM Standards', (err, rows) => {
+    if (err) {
+      console.error('Error fetching standards:', err.message);
+      res.status(500).json({ error: 'Error fetching standards' });
+    } else {
+      res.json(rows);
+    }
+  });
 });
+
+
+const standardsRouter = require('./routes/standards');
+app.use('/api/standards', standardsRouter);

@@ -27,15 +27,14 @@ function createTables() {
     // Create Standards table
     db.run(`
       CREATE TABLE IF NOT EXISTS Standards (
-        standard_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        grade_band TEXT NOT NULL,
-        standard_number INTEGER NOT NULL,
-        benchmark_letter TEXT,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        skill_or_task TEXT,
-        level TEXT,
-        instructions TEXT
+        id INTEGER PRIMARY KEY,
+        grade_band TEXT,
+        standard_num INTEGER,
+        benchmark_num INTEGER,
+        criteria_num INTEGER, 
+        level_num INTEGER,
+        title TEXT,
+        description TEXT
       )
     `);
 
@@ -61,16 +60,10 @@ function createTables() {
         date_assessed DATE,
         comments TEXT,
         FOREIGN KEY (student_id) REFERENCES Student (student_id) ON DELETE CASCADE,
-        FOREIGN KEY (standard_id) REFERENCES Standards (standard_id) ON DELETE CASCADE,
+        FOREIGN KEY (standard_id) REFERENCES Standards (id) ON DELETE CASCADE,
         FOREIGN KEY (time_period_id) REFERENCES TimePeriod (time_period_id) ON DELETE CASCADE
       )
-    `, (err) => {
-      if (err) {
-        console.error('Error creating tables:', err.message);
-      } else {
-        console.log('All tables created successfully.');
-      }
-    });
+    `);
   });
 }
 
