@@ -26,30 +26,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Create students table if it doesn't exist
-db.run(`CREATE TABLE IF NOT EXISTS students (
-  StudentID INTEGER PRIMARY KEY,
-  FirstName TEXT,
-  LastName TEXT,
-  Grade INTEGER,
-  Class TEXT
-)`, (err) => {
-  if (err) {
-    console.error('Error creating students table:', err.message);
-  } else {
-    console.log('Students table created or already exists');
-
-    // Check if the students table exists and log the row count
-    db.get('SELECT COUNT(*) as count FROM students', (err, row) => {
-      if (err) {
-        console.error('Error checking students table:', err.message);
-      } else {
-        console.log('Students table exists with', row.count, 'rows');
-      }
-    });
-  }
-});
-
 // Add a GET route for fetching students
 app.get('/api/students', (req, res) => {
   db.all('SELECT * FROM students', (err, rows) => {
@@ -77,7 +53,7 @@ app.post('/api/students/import', upload.single('file'), (req, res) => {
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
 
-        const stmt = db.prepare('INSERT INTO students (StudentID, FirstName, LastName, Grade, Class) VALUES (?, ?, ?, ?, ?)');
+        const stmt = db.prepare('INSERT INTO Students (student_id, first_name, last_name, grade, class) VALUES (?, ?, ?, ?, ?)');
 
         results.forEach((row) => {
           stmt.run(

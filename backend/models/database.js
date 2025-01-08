@@ -13,9 +13,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 function createTables() {
   db.serialize(() => {
-    // Create Student table
+    // Create Students table
     db.run(`
-      CREATE TABLE IF NOT EXISTS Student (
+      CREATE TABLE IF NOT EXISTS Students (
         student_id INTEGER PRIMARY KEY AUTOINCREMENT,
         first_name TEXT NOT NULL,
         last_name TEXT NOT NULL,

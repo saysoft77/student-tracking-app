@@ -3,9 +3,11 @@ import { config } from '../config/config';
 
 const api = {
   standards: {
+    getAll: () => 
+      axios.get(`${config.API_URL}/api/standards`),
     getByGradeBand: (gradeBand) => 
       axios.get(`${config.API_URL}/api/standards/grade/${gradeBand}`)
-  },  // Add other API endpoints here organized by feature
+  }
 };
 
 export default api;
