@@ -19,10 +19,13 @@ const Home = () => {
           <h2>Standards</h2>
           <p>View and manage academic standards</p>
         </Link>
+        <Link to="/tracking" className="card">
+          <h2>Tracking</h2>
+          <p>Track student progress</p>
+        </Link>
       </div>
     </div>
   );
 };
 
 export default Home;
-

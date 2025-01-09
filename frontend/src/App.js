@@ -6,6 +6,7 @@ import Classes from './components/Classes';
 import Standards from './components/Standards';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AppProvider } from './context/AppContext';
+import Tracking from './components/Tracking'; // Import the Tracking component
 
 function App() {
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -27,6 +28,7 @@ function App() {
                 <Link to="/students" onClick={toggleNav}>Students</Link>
                 <Link to="/classes" onClick={toggleNav}>Classes</Link>
                 <Link to="/standards" onClick={toggleNav}>Standards</Link>
+                <Link to="/tracking" onClick={toggleNav}>Tracking</Link> {/* Added Tracking Link */}
               </nav>
             </header>
             <main className="main-content">
@@ -35,6 +37,7 @@ function App() {
                 <Route path="/students" element={<Students />} />
                 <Route path="/classes" element={<Classes />} />
                 <Route path="/standards" element={<Standards />} />
+                <Route path="/tracking" element={<Tracking />} /> {/* Added Tracking Route */}
               </Routes>
             </main>
           </div>
@@ -43,4 +46,5 @@ function App() {
     </AppProvider>
   );
 }
+
 export default App;

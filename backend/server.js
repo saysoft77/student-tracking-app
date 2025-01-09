@@ -107,5 +107,7 @@ const standardsRouter = require('./routes/standards');
 app.use('/api/standards', standardsRouter);
 
 const studentsRouter = require('./routes/students');
+const trackingRouter = require('./routes/tracking');
 
 app.use('/api/students', studentsRouter);
+app.use('/api/tracking', trackingRouter);
