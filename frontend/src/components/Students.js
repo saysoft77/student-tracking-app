@@ -3,24 +3,25 @@ import axios from 'axios';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/api/students');
+        setStudents(response.data.students);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchStudents();
   }, []);
 
-  const fetchStudents = async () => {
-    try {
-      const response = await axios.get('http://localhost:3001/api/students');
-      setStudents(response.data.students);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-    }
-  };
-
-  // Add the missing handleManageStudents function
   const handleManageStudents = () => {
     setShowDialog(true);
   };
@@ -56,7 +57,8 @@ const Students = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
-        await fetchStudents();
+        const response = await axios.get('http://localhost:3001/api/students');
+        setStudents(response.data.students);
         alert('Students imported successfully');
       } catch (error) {
         console.error('Error importing students:', error);
@@ -83,18 +85,21 @@ const Students = () => {
           </tr>
         </thead>
         <tbody>
-          {students.map((student) => (
-            <tr key={student.StudentID}>
-              <td>{student.StudentID}</td>
-              <td>{student.FirstName}</td>
-              <td>{student.LastName}</td>
-              <td>{student.Grade}</td>
-              <td>{student.Class}</td>
-            </tr>
-          ))}
+          {loading ? (
+            <tr><td colSpan="5"><p>Loading students...</p></td></tr>
+          ) : (
+            students.map((student) => (
+              <tr key={`student-${student.student_id}`}>
+                <td>{student.student_id}</td>
+                <td>{student.first_name}</td>
+                <td>{student.last_name}</td>
+                <td>{student.grade}</td>
+                <td>{student.class}</td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
-
       {showDialog && (
         <div className="dialog-overlay">
           <div className="dialog">

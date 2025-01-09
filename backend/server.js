@@ -105,3 +105,7 @@ app.listen(port, () => {
 
 const standardsRouter = require('./routes/standards');
 app.use('/api/standards', standardsRouter);
+
+const studentsRouter = require('./routes/students');
+
+app.use('/api/students', studentsRouter);
