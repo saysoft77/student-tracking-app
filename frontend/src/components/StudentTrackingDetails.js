@@ -111,6 +111,15 @@ const StudentTrackingDetails = () => {
     }
   }, [selectedCriteria, filteredCriteria]);
 
+  // Get levels for the selected criteria
+  const getLevelsForCriteria = (criteriaNum) => {
+    if (!criteriaNum) return [];
+    const levels = filteredCriteria
+      .filter((s) => s.criteria_num === parseInt(criteriaNum) && s.level_num > 0)
+      .sort((a, b) => b.level_num - a.level_num); // Sort by level number in descending order
+    return levels;
+  };
+
   if (!student) {
     return <p>Loading student details...</p>;
   }
@@ -178,6 +187,36 @@ const StudentTrackingDetails = () => {
         <p><strong>Benchmark:</strong> {benchmarkDescription || 'No benchmark selected'}</p>
         <p><strong>Criteria:</strong> {criteriaDescription || 'No criteria selected'}</p>
       </div>
+
+      {/* Assessment Levels */}
+      {selectedCriteria && (
+        <div className="levels-container">
+          <h3>Assessment Levels</h3>
+          <div className="assessment-levels">
+            {getLevelsForCriteria(selectedCriteria).map((level) => (
+              <div
+                key={level.level_num}
+                className={`level ${
+                  level.level_num === 3
+                    ? 'advanced'
+                    : level.level_num === 2
+                    ? 'proficient'
+                    : 'limited'
+                }`}
+              >
+                <h4>
+                  {level.level_num === 3
+                    ? 'Advanced'
+                    : level.level_num === 2
+                    ? 'Proficient'
+                    : 'Limited'}
+                </h4>
+                <p>{level.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
