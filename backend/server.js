@@ -87,27 +87,19 @@ app.post('/api/students/import', upload.single('file'), (req, res) => {
     });
 });
 
+// Import routers
+const standardsRouter = require('./routes/standards');
+const studentsRouter = require('./routes/students');
+const trackingRouter = require('./routes/tracking');
+const classesRouter = require('./routes/classes'); // Import the new classes router
+
+// Register routers
+app.use('/api/standards', standardsRouter);
+app.use('/api/students', studentsRouter);
+app.use('/api/tracking', trackingRouter);
+app.use('/api/classes', classesRouter); // Register the new classes router
 
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-});app.get('/api/standards', (req, res) => {
-  db.all('SELECT * FROM Standards', (err, rows) => {
-    if (err) {
-      console.error('Error fetching standards:', err.message);
-      res.status(500).json({ error: 'Error fetching standards' });
-    } else {
-      res.json(rows);
-    }
-  });
 });
-
-
-const standardsRouter = require('./routes/standards');
-app.use('/api/standards', standardsRouter);
-
-const studentsRouter = require('./routes/students');
-const trackingRouter = require('./routes/tracking');
-
-app.use('/api/students', studentsRouter);
-app.use('/api/tracking', trackingRouter);
