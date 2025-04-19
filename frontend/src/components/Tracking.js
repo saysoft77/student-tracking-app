@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import axios from 'axios';
 
 const Tracking = () => {
@@ -6,6 +7,8 @@ const Tracking = () => {
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
+  const navigate = useNavigate(); // Initialize navigate function
 
   useEffect(() => {
     // Fetch combined student and class data from the backend
@@ -52,6 +55,11 @@ const Tracking = () => {
     setFilteredStudents(sortedStudents);
   };
 
+  // Handle row click
+  const handleRowClick = (studentId) => {
+    navigate(`/students/${studentId}`); // Navigate to the new page with the student ID
+  };
+
   return (
     <div>
       <h1>Student Progress Tracking</h1>
@@ -77,7 +85,11 @@ const Tracking = () => {
         </thead>
         <tbody>
           {filteredStudents.map((student) => (
-            <tr key={`student-${student.student_id}`}>
+            <tr
+              key={`student-${student.student_id}`}
+              onClick={() => handleRowClick(student.student_id)} // Add click handler
+              style={{ cursor: 'pointer' }} // Add pointer cursor for better UX
+            >
               <td>{student.first_name}</td>
               <td>{student.last_name}</td>
               <td>{student.grade}</td>
