@@ -42,6 +42,8 @@ app.get('/api/students', (req, res) => {
 const performanceRecordsRouter = require('./routes/performanceRecords');
 app.use('/api/performance-records', performanceRecordsRouter);
 
+const timePeriodsRouter = require('./routes/timePeriods');
+app.use('/api/time-periods', timePeriodsRouter);
 
 app.post('/api/students/import', upload.single('file'), (req, res) => {
   if (!req.file) {

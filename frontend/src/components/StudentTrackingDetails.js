@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const StudentTrackingDetails = () => {
   const { id } = useParams(); // Get the student ID from the URL
+  const navigate = useNavigate(); // Hook for navigation
   const [student, setStudent] = useState(null);
   const [standards, setStandards] = useState([]);
   const [selectedStandard, setSelectedStandard] = useState('');
@@ -18,6 +19,10 @@ const StudentTrackingDetails = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false); // Controls dialog visibility
   const [selectedLevel, setSelectedLevel] = useState(null); // Stores the selected assessment level
   const [comment, setComment] = useState(''); // Stores the entered comment
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentSemester, setCurrentSemester] = useState('');
+  const [currentQuarter, setCurrentQuarter] = useState('');
+  const [timePeriodId, setTimePeriodId] = useState(null);
 
   // Utility function to map grade to grade band
   const getGradeBand = (grade) => {
@@ -29,27 +34,111 @@ const StudentTrackingDetails = () => {
     return null; // No matching grade band
   };
 
-    const openDialog = (level) => {
+  const openDialog = (level) => {
     setSelectedLevel(level); // Set the selected level
     setComment(''); // Clear any previous comment
     setIsDialogOpen(true); // Open the dialog
   };
 
   const saveComment = async () => {
+    if (!timePeriodId) {
+      console.error('No time period resolved. Cannot save performance record.');
+      return;
+    }
+
+    const payload = {
+      student_id: student.student_id,
+      standard_num: selectedStandard,
+      benchmark_num: selectedBenchmark,
+      criteria_num: selectedCriteria,
+      level_num: selectedLevel.level_num,
+      time_period_id: timePeriodId,
+      comment,
+    };
+
     try {
-      await axios.post('http://localhost:3001/api/performance-records', {
-        student_id: student.student_id,
-        standard_num: selectedStandard,
-        benchmark_num: selectedBenchmark,
-        criteria_num: selectedCriteria,
-        level_num: selectedLevel.level_num,
-        comment,
-      });
+      await axios.post('http://localhost:3001/api/performance-records', payload);
       setIsDialogOpen(false); // Close the dialog
+      navigate('/tracking'); // Redirect to the tracking page
     } catch (error) {
       console.error('Error saving performance record:', error);
     }
   };
+
+  const deriveSemesterAndQuarter = (date) => {
+    const month = date.getMonth() + 1; // Months are 0-based
+    const currentYear = date.getFullYear();
+    const schoolYear = month >= 8 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+
+    // Determine semester and quarter
+    let semester = '';
+    let quarter = '';
+    if (month >= 8 && month <= 10) {
+      semester = '1'; // Fall Semester
+      quarter = 1; // Quarter 1
+    } else if (month >= 11 && month <= 12) {
+      semester = '1'; // Fall Semester
+      quarter = 2; // Quarter 2
+    } else if (month >= 1 && month <= 3) {
+      semester = '2'; // Spring Semester
+      quarter = 3; // Quarter 3
+    } else if (month >= 4 && month <= 5) {
+      semester = '2'; // Spring Semester
+      quarter = 4; // Quarter 4
+    }
+
+    console.log('Derived values:', { semester, quarter, schoolYear });
+    console.log('Available time periods:', timePeriods);
+
+    setCurrentSemester(semester);
+    setCurrentQuarter(quarter);
+
+    // Find the matching time period
+    const matchingPeriod = timePeriods.find(
+      (period) =>
+        period.semester === semester &&
+        period.quarter === quarter &&
+        period.school_year === schoolYear
+    );
+
+    if (matchingPeriod) {
+      console.log('Matching time period found:', matchingPeriod);
+      setTimePeriodId(matchingPeriod.time_period_id);
+    } else {
+      console.error('No matching time period found.');
+      setTimePeriodId(null);
+    }
+  };
+
+  useEffect(() => {
+    const today = new Date();
+    setCurrentDate(today);
+    deriveSemesterAndQuarter(today);
+  }, []);
+
+  const [timePeriods, setTimePeriods] = useState([]);
+
+  useEffect(() => {
+    const fetchTimePeriods = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/api/time-periods');
+        setTimePeriods(response.data);
+      } catch (error) {
+        console.error('Error fetching time periods:', error);
+      }
+    };
+
+    fetchTimePeriods();
+  }, []);
+
+  useEffect(() => {
+    if (timePeriods.length > 0) {
+      console.log('Available time periods:', timePeriods);
+      const today = new Date();
+      setCurrentDate(today);
+      deriveSemesterAndQuarter(today);
+    }
+  }, [timePeriods]);
 
   useEffect(() => {
     // Fetch student details
@@ -243,25 +332,29 @@ const StudentTrackingDetails = () => {
       </div>
         </div>
       )}
-            {isDialogOpen && (
-        <div className="dialog-overlay">
-          <div className="dialog-box">
-            <h3>Enter Comment</h3>
-            <p><strong>Student:</strong> {student.first_name} {student.last_name}</p>
-            <p><strong>Standard:</strong> {standardDescription}</p>
-            <p><strong>Benchmark:</strong> {benchmarkDescription}</p>
-            <p><strong>Criteria:</strong> {criteriaDescription}</p>
-            <p><strong>Level:</strong> {selectedLevel.level_num === 3 ? 'Advanced' : selectedLevel.level_num === 2 ? 'Proficient' : 'Limited'}</p>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Enter your comment here..."
-            />
-            <button onClick={saveComment}>OK</button>
-            <button onClick={() => setIsDialogOpen(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
+
+{isDialogOpen && (
+  <div className="dialog-overlay">
+    <div className="dialog-box">
+      <h3>Enter Comment</h3>
+      <p><strong>Student:</strong> {student.first_name} {student.last_name}</p>
+      <p><strong>Standard:</strong> {standardDescription}</p>
+      <p><strong>Benchmark:</strong> {benchmarkDescription}</p>
+      <p><strong>Criteria:</strong> {criteriaDescription}</p>
+      <p><strong>Level:</strong> {selectedLevel.level_num === 3 ? 'Advanced' : selectedLevel.level_num === 2 ? 'Proficient' : 'Limited'}</p>
+      <p><strong>Current Date:</strong> {currentDate.toLocaleDateString()}</p>
+      <p><strong>Semester:</strong> {currentSemester}</p>
+      <p><strong>Quarter:</strong> {currentQuarter}</p>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Enter your comment here..."
+      />
+      <button onClick={saveComment}>OK</button>
+      <button onClick={() => setIsDialogOpen(false)}>Cancel</button>
+    </div>
+  </div>
+)}
     </div>
   );
 };
