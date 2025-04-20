@@ -39,6 +39,10 @@ app.get('/api/students', (req, res) => {
   });
 });
 
+const performanceRecordsRouter = require('./routes/performanceRecords');
+app.use('/api/performance-records', performanceRecordsRouter);
+
+
 app.post('/api/students/import', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });

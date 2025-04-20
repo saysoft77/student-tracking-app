@@ -15,6 +15,9 @@ const StudentTrackingDetails = () => {
   const [standardDescription, setStandardDescription] = useState('');
   const [benchmarkDescription, setBenchmarkDescription] = useState('');
   const [criteriaDescription, setCriteriaDescription] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false); // Controls dialog visibility
+  const [selectedLevel, setSelectedLevel] = useState(null); // Stores the selected assessment level
+  const [comment, setComment] = useState(''); // Stores the entered comment
 
   // Utility function to map grade to grade band
   const getGradeBand = (grade) => {
@@ -24,6 +27,28 @@ const StudentTrackingDetails = () => {
     if (grade >= 6 && grade <= 8) return '6-8';
     if (grade >= 9 && grade <= 12) return '9-12';
     return null; // No matching grade band
+  };
+
+    const openDialog = (level) => {
+    setSelectedLevel(level); // Set the selected level
+    setComment(''); // Clear any previous comment
+    setIsDialogOpen(true); // Open the dialog
+  };
+
+  const saveComment = async () => {
+    try {
+      await axios.post('http://localhost:3001/api/performance-records', {
+        student_id: student.student_id,
+        standard_num: selectedStandard,
+        benchmark_num: selectedBenchmark,
+        criteria_num: selectedCriteria,
+        level_num: selectedLevel.level_num,
+        comment,
+      });
+      setIsDialogOpen(false); // Close the dialog
+    } catch (error) {
+      console.error('Error saving performance record:', error);
+    }
   };
 
   useEffect(() => {
@@ -193,27 +218,47 @@ const StudentTrackingDetails = () => {
         <div className="levels-container">
           <h3>Assessment Levels</h3>
           <div className="assessment-levels">
-            {getLevelsForCriteria(selectedCriteria).map((level) => (
-              <div
-                key={level.level_num}
-                className={`level ${
-                  level.level_num === 3
-                    ? 'advanced'
-                    : level.level_num === 2
-                    ? 'proficient'
-                    : 'limited'
-                }`}
-              >
-                <h4>
-                  {level.level_num === 3
-                    ? 'Advanced'
-                    : level.level_num === 2
-                    ? 'Proficient'
-                    : 'Limited'}
-                </h4>
-                <p>{level.description}</p>
-              </div>
-            ))}
+        {getLevelsForCriteria(selectedCriteria).map((level) => (
+          <div
+            key={level.level_num}
+            className={`level ${
+              level.level_num === 3
+                ? 'advanced'
+                : level.level_num === 2
+                ? 'proficient'
+                : 'limited'
+            }`}
+            onClick={() => openDialog(level)} // Open dialog on click
+          >
+            <h4>
+              {level.level_num === 3
+                ? 'Advanced'
+                : level.level_num === 2
+                ? 'Proficient'
+                : 'Limited'}
+            </h4>
+            <p>{level.description}</p>
+          </div>
+        ))}
+      </div>
+        </div>
+      )}
+            {isDialogOpen && (
+        <div className="dialog-overlay">
+          <div className="dialog-box">
+            <h3>Enter Comment</h3>
+            <p><strong>Student:</strong> {student.first_name} {student.last_name}</p>
+            <p><strong>Standard:</strong> {standardDescription}</p>
+            <p><strong>Benchmark:</strong> {benchmarkDescription}</p>
+            <p><strong>Criteria:</strong> {criteriaDescription}</p>
+            <p><strong>Level:</strong> {selectedLevel.level_num === 3 ? 'Advanced' : selectedLevel.level_num === 2 ? 'Proficient' : 'Limited'}</p>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Enter your comment here..."
+            />
+            <button onClick={saveComment}>OK</button>
+            <button onClick={() => setIsDialogOpen(false)}>Cancel</button>
           </div>
         </div>
       )}
